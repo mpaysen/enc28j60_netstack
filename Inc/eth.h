@@ -5,12 +5,10 @@
 #include "stm32g0xx_hal.h"
 
 
-/* Define ether_types -------------------------------------*/
+/* Defines -------------------------------------*/
 
 
 #define ETHER_TYPE_SIZE 2
-//Big Endian
-#define IPV4_TYPE 0x0008
 
 typedef struct {
 	uint16_t ether_type;
@@ -37,7 +35,7 @@ typedef struct {
 } mac_header;
 
 
-void eth_init(ether_types* types);
+void eth_init(ether_types* types_addr);
 
 void eth_add_type(uint16_t type, void* func);
 

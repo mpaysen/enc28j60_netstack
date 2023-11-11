@@ -37,7 +37,7 @@ uint16_t enc28_readBuf16();
 
 uint8_t enc28J60_TransceiveByte(uint8_t data) {
 	uint8_t received;
-	if (HAL_SPI_TransmitReceive(&hspi1, &data, &received, 1, 1000) == HAL_OK) {
+	if (HAL_SPI_TransmitReceive(&hspi1, &data, &received, 1, 1) == HAL_OK) {
 		return received;
 	}
 	return 0;

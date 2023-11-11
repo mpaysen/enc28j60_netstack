@@ -5,6 +5,7 @@
 SPI_HandleTypeDef hspi1;
 arp_table table;
 ether_types eth_types;
+prtcl_types prot_types;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -31,13 +32,15 @@ int main(void)
   SPI1_Init();
 	enc28_init(my_mac); // Initialize eth_hw
 	eth_init(&eth_types);// Initialize layer2
+	ipv4_init(&prot_types);// Initialize layer3
 	arp_table_init(&table, my_ip, my_mac); // Initialize ARP
+	icmp_init(my_ip, my_mac); // Initialize ICMP
 
 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET); //LED ON
   /* CODE BEGIN WHILE */
  while (1)
   {
-	 //send_arp_req(my_ip, my_mac, target_ip);
+	 //send_icmp_req(target_ip);
 	 if(enc28_packetReceive(BUFFER_SIZE, buffer)){
 			eth_handler(buffer); //handel layer2
 		  //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);

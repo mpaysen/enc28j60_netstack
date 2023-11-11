@@ -40,7 +40,7 @@ void add_to_arp_table(arp_entry entry) {
     if(table->tail < ARP_TABLE_SIZE - 1){table->tail += 1;}
 }
 		
-int get_mac_from_table(mac_address* mac, ip_address ip) {
+int get_mac_from_table(ip_address ip, mac_address* mac) {
     int foundIndex = -1;
 
 
@@ -67,7 +67,7 @@ int get_mac_from_table(mac_address* mac, ip_address ip) {
         return 1;
     }
 
-    return 0; 
+    return 0;
 }
 
 void get_arp_rep(uint8_t* buf){
@@ -88,36 +88,48 @@ void get_arp_rep(uint8_t* buf){
 }
 
 void send_arp_req(ip_address src_ip, mac_address src_mac, ip_address target_ip){
-	arp_package req;
+		struct package {
+		mac_header mac_header;
+		arp_package arp_package;
+	};
+	struct package req;
+	//layer2
 	req.mac_header.dest_mac = (mac_address){0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 	req.mac_header.src_mac = src_mac;
 	req.mac_header.ether_type = ARP_TYPE;
-	req.hw_type = ARP_HW_TYPE;
-	req.pr_type = ARP_PR_TYPE;
-	req.hw_size = ARP_HW_SIZE;
-	req.pr_size = ARP_PR_SIZE;
-	req.opcode = ARP_REQ;
-	req.sender_mac = src_mac;
-	req.sender_ip = src_ip;
-	req.target_mac = (mac_address){0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	req.target_ip = target_ip;
+	//package
+	req.arp_package.hw_type = ARP_HW_TYPE;
+	req.arp_package.pr_type = ARP_PR_TYPE;
+	req.arp_package.hw_size = ARP_HW_SIZE;
+	req.arp_package.pr_size = ARP_PR_SIZE;
+	req.arp_package.opcode = ARP_REQ;
+	req.arp_package.sender_mac = src_mac;
+	req.arp_package.sender_ip = src_ip;
+	req.arp_package.target_mac = (mac_address){0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	req.arp_package.target_ip = target_ip;
 	enc28_packetSend(42, (uint8_t*)&req);
 }
 
 void send_arp_rep(ip_address src_ip, mac_address src_mac, ip_address target_ip, mac_address target_mac){
-	arp_package rep;
+	struct package {
+		mac_header mac_header;
+		arp_package arp_package;
+	};
+	struct package rep;
+	//layer2
 	rep.mac_header.dest_mac = target_mac;
 	rep.mac_header.src_mac = src_mac;
 	rep.mac_header.ether_type = ARP_TYPE;
-	rep.hw_type = ARP_HW_TYPE;
-	rep.pr_type = ARP_PR_TYPE;
-	rep.hw_size = ARP_HW_SIZE;
-	rep.pr_size = ARP_PR_SIZE;
-	rep.opcode = ARP_REPLY;
-	rep.sender_mac = src_mac;
-	rep.sender_ip = src_ip;
-	rep.target_mac = target_mac;
-	rep.target_ip = target_ip;
+	//package
+	rep.arp_package.hw_type = ARP_HW_TYPE;
+	rep.arp_package.pr_type = ARP_PR_TYPE;
+	rep.arp_package.hw_size = ARP_HW_SIZE;
+	rep.arp_package.pr_size = ARP_PR_SIZE;
+	rep.arp_package.opcode = ARP_REPLY;
+	rep.arp_package.sender_mac = src_mac;
+	rep.arp_package.sender_ip = src_ip;
+	rep.arp_package.target_mac = target_mac;
+	rep.arp_package.target_ip = target_ip;
 	enc28_packetSend(42, (uint8_t*)&rep);
 }
 
@@ -143,6 +155,12 @@ void get_arp_req(uint8_t* buf, ip_address my_ip, mac_address my_mac){
 			send_arp_rep(my_ip, my_mac, entry.dest_ip, entry.dest_mac);
 			}
 			return;
+}
+
+int get_mac(ip_address ip, mac_address* mac_addr){ 
+	if(get_mac_from_table(ip, mac_addr)){return 1;}
+	send_arp_req(my_ip, my_mac, ip);
+	return 0;
 }
 
 
