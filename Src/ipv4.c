@@ -4,10 +4,11 @@
 static prtcl_types* types;
 
 void ipv4_init(prtcl_types* types_addr) {
-
-	eth_add_type(IPV4_TYPE, &handle_ipv4); //add IPv4 eth_type and ipv4_handler function
-	types = types_addr; //set ptr to Layer2 protocol struct
-	types->idx = 0; //set index to zero, none protocol added
+	if (types_addr != NULL) {
+		eth_add_type(IPV4_TYPE, &handle_ipv4); //add IPv4 eth_type and ipv4_handler function
+		types = types_addr; //set ptr to Layer2 protocol struct
+		types->idx = 0; //set index to zero, none protocol added
+	}
 }
 
 void ipv4_add_type(uint8_t type, void* func){

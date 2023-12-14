@@ -5,8 +5,10 @@
 static ether_types* types;
 
 void eth_init(ether_types* types_addr) {
+	if (types_addr != NULL) {
 	types = types_addr; //set ptr to Layer2 protocol struct
 	types->idx = 0; //set index to zero, none protocol added
+	}
 }
 
 void eth_add_type(uint16_t type, void* func){
