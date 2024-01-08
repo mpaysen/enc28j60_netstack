@@ -43,4 +43,4 @@ void icmp_init(ip_address src_ip, mac_address src_mac);
 void send_icmp_req(ip_address target_ip);
 
 
-#endif /* __ARP_H */
+#endif /* __ICMP_H */

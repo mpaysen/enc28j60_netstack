@@ -1,23 +1,37 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#define BUFFER_SIZE 550
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 arp_table table;
 ether_types eth_types;
 prtcl_types prot_types;
+static uint8_t buffer [BUFFER_SIZE + 1];
+mac_address my_mac = {0xB8,0x37,0x4A,0x04,0x20,0x0b}; // MAC address: (b8:37:4a:04:20:0b)
+ip_address my_ip = {0x0a,0x0a,0x0a,0x02}; // IP address: 10.10.10.2
+//ip_address target_ip = {0x0a,0x0a,0x0a,0x01}; // Target IP address: 10.10.10.1
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void GPIO_Init(void);
 static void SPI1_Init(void);
 
-#define BUFFER_SIZE 550
-static uint8_t buffer [BUFFER_SIZE + 1];
-mac_address my_mac = {0xB8,0x37,0x4A,0x04,0x20,0x0b}; // MAC address: (b8:37:4a:04:20:0b)
-ip_address my_ip = {0x0a,0x0a,0x0a,0x02}; // IP address: 10.10.10.2
-ip_address target_ip = {0x0a,0x0a,0x0a,0x01}; // Target IP address: 10.10.10.1
 
+/**
+ * @brief  Main function for the program.
+ *
+ * This function initializes the system, configures the system clock, and initializes various peripherals
+ * such as GPIO, SPI1, Ethernet, IPv4, ARP, and ICMP. It continuously listens for incoming Ethernet packets,
+ * processes them at the appropriate layers (Layer 2 and Layer 3), and toggles an LED on GPIOC.
+ *
+ * @note   This function assumes that the HAL (Hardware Abstraction Layer) and specific peripheral initialization
+ *         functions (e.g., HAL_Init, SystemClock_Config, GPIO_Init, SPI1_Init) are properly defined elsewhere
+ *         in the code.
+ *
+ * @retval int  The exit status of the program. In this case, the program runs indefinitely, and the return
+ *              statement is never reached.
+ */
 int main(void)
 {
 	
@@ -52,6 +66,22 @@ HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET); //LED ON
   /* CODE END */
 }
 
+
+/**
+ * @brief  Configure the system clock.
+ *
+ * This function configures the main internal regulator output voltage and initializes
+ * the RCC (Reset and Clock Control) oscillators, setting up the system clock. It uses
+ * the specified parameters in the RCC_OscInitTypeDef and RCC_ClkInitTypeDef structures.
+ *
+ * @note   This function assumes the existence of the HAL (Hardware Abstraction Layer) functions,
+ *         HAL_RCC_OscConfig and HAL_RCC_ClockConfig, and the Error_Handler function for error handling.
+ *
+ * @note   The default configuration uses the High-Speed Internal (HSI) oscillator as the source
+ *         for the PLL (Phase-Locked Loop), which is then used as the system clock.
+ *
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -94,6 +124,21 @@ void SystemClock_Config(void)
   }
 }
 
+/**
+ * @brief  Initialize SPI1 peripheral.
+ *
+ * This function configures the SPI1 peripheral with the specified parameters such as mode, data size,
+ * clock polarity, clock phase, and baud rate prescaler. It sets up SPI1 as a master device with 8-bit data
+ * size, a clock polarity of low, and a clock phase at the first edge. The NSS (Slave Select) signal is
+ * controlled by software (SPI_NSS_SOFT), and the baud rate prescaler is set to 4. The CRC (Cyclic Redundancy
+ * Check) calculation is disabled.
+ *
+ * @note   This function assumes the existence of the HAL (Hardware Abstraction Layer) function, HAL_SPI_Init,
+ *         and the Error_Handler function for error handling. The SPI1 peripheral instance is assumed to be
+ *         available as a global variable named 'hspi1'.
+ *
+ * @retval None
+ */
 static void SPI1_Init(void)
 {
   /* SPI1 parameter configuration*/
@@ -119,6 +164,23 @@ static void SPI1_Init(void)
 
 }
 
+
+
+
+
+/**
+ * @brief  Initialize GPIO pins.
+ *
+ * This function configures GPIO pins on ports B and C, enabling clock signals for these ports.
+ * It sets up GPIOB_PIN_9 as an output pin with a low-speed frequency and GPIOC_PIN_6 as another
+ * output pin with the same configuration. The initial output level for both pins is set to low.
+ *
+ * @note   This function assumes the existence of the HAL (Hardware Abstraction Layer) function, HAL_GPIO_Init,
+ *         and the Error_Handler function for error handling. The GPIO_InitStruct variable is used to set up
+ *         the parameters for GPIO initialization.
+ *
+ * @retval None
+ */
 static void GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -152,6 +214,7 @@ static void GPIO_Init(void)
 
 }
 
+
 void Error_Handler(void)
 {
 
@@ -161,4 +224,5 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
+
 

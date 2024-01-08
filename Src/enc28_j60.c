@@ -1,6 +1,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "enc28_j60.h"
 
+
+/* Private variables ---------------------------------------------------------*/
 extern SPI_HandleTypeDef hspi1;
 static uint8_t enc28_bank;
 static uint16_t nextPacketPtr;
@@ -35,25 +37,77 @@ uint16_t enc28_readBuf16();
 
 /* functions ---------------------------------------------------------------*/
 
+
+
+/**
+ * @brief  Transmit and receive a single byte with the ENC28J60 using SPI communication.
+ *
+ * This function transmits a single byte to the ENC28J60 using SPI communication and receives
+ * the response byte. It uses the specified SPI interface (e.g., hspi1) for the communication.
+ *
+ * @param  data  The byte to be transmitted to the ENC28J60.
+ *
+ * @note   This function assumes the existence of helper functions like HAL_SPI_TransmitReceive for
+ *         handling SPI communication.
+ *
+ * @retval uint8_t  The byte received from the ENC28J60 in response to the transmitted byte.
+ */
 uint8_t enc28J60_TransceiveByte(uint8_t data) {
 	uint8_t received;
-	if (HAL_SPI_TransmitReceive(&hspi1, &data, &received, 1, 1) == HAL_OK) {
+	if (HAL_SPI_TransmitReceive(&hspi1, &data, &received, 1, 10) == HAL_OK) {
 		return received;
 	}
 	return 0;
 }
 
+/**
+ * @brief  Enable the ENC28J60 chip by setting the Chip Select pin low.
+ *
+ * This function enables communication with the ENC28J60 chip by setting the Chip Select (CS) pin low.
+ * It is typically used before performing read or write operations on the ENC28J60 to initiate communication.
+ *
+ * @note   This function assumes the existence of helper functions like HAL_GPIO_WritePin for
+ *         controlling the Chip Select pin.
+ *
+ * @retval None
+ */
 void enc28J60_EnableChip(void) {
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
 }
 
+
+/**
+ * @brief  Disable the ENC28J60 chip by setting the Chip Select pin high.
+ *
+ * This function disables communication with the ENC28J60 chip by setting the Chip Select (CS) pin high.
+ * It is typically used after performing read or write operations on the ENC28J60 to release the chip.
+ *
+ * @note   This function assumes the existence of helper functions like HAL_GPIO_WritePin for
+ *         controlling the Chip Select pin.
+ *
+ * @retval None
+ */
 void enc28J60_DisableChip(void) {
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
 }
 
 
-uint8_t enc28_readOp(uint8_t oper, uint8_t addr)
-{
+/**
+ * @brief  Perform a read operation on a register of the ENC28J60 Ethernet module.
+ *
+ * This function performs a read operation on a specified register of the ENC28J60 Ethernet module.
+ * It enables the ENC28J60 chip, sends the operation code combined with the register address,
+ * reads the data from the specified register, and then disables the ENC28J60 chip.
+ *
+ * @param  oper  The operation code to perform (e.g., ENC28J60_READ_CTRL_REG).
+ * @param  addr  The address of the register to read.
+ *
+ * @note   This function assumes the existence of helper functions like enc28J60_EnableChip,
+ *         enc28J60_DisableChip, and enc28J60_TransceiveByte for interfacing with the ENC28J60.
+ *
+ * @retval uint8_t  The data read from the specified register.
+ */
+uint8_t enc28_readOp(uint8_t oper, uint8_t addr) {
 	uint8_t temp;
 	enc28J60_EnableChip();
 
@@ -65,8 +119,26 @@ uint8_t enc28_readOp(uint8_t oper, uint8_t addr)
 	enc28J60_DisableChip();
 	return temp;
 }
-void enc28_writeOp(uint8_t oper, uint8_t addr, uint8_t data)
-{
+
+
+
+/**
+ * @brief  Perform a write operation on a register of the ENC28J60 Ethernet module.
+ *
+ * This function performs a write operation on a specified register of the ENC28J60 Ethernet module.
+ * It enables the ENC28J60 chip, sends the operation code combined with the register address,
+ * writes the provided data, and then disables the ENC28J60 chip.
+ *
+ * @param  oper  The operation code to perform (e.g., ENC28J60_WRITE_CTRL_REG).
+ * @param  addr  The address of the register to write.
+ * @param  data  The data to write to the specified register.
+ *
+ * @note   This function assumes the existence of helper functions like enc28J60_EnableChip,
+ *         enc28J60_DisableChip, and enc28J60_TransceiveByte for interfacing with the ENC28J60.
+ *
+ * @retval None
+ */
+void enc28_writeOp(uint8_t oper, uint8_t addr, uint8_t data) {
 	enc28J60_EnableChip();
 	
 	enc28J60_TransceiveByte(oper | (addr & ADDR_MASK));
@@ -75,31 +147,104 @@ void enc28_writeOp(uint8_t oper, uint8_t addr, uint8_t data)
 	
 }
 
-uint8_t enc28_readReg8(uint8_t addr)
-{
+
+/**
+ * @brief  Read an 8-bit value from a register of the ENC28J60 Ethernet module.
+ *
+ * This function reads an 8-bit value from a specified register of the ENC28J60 Ethernet module.
+ * It sets the ENC28J60 bank based on the specified address and reads the data from the register.
+ *
+ * @param  addr  The address of the register to read.
+ *
+ * @note   This function assumes the existence of helper functions like enc28_setBank and enc28_readOp
+ *         for interfacing with the ENC28J60.
+ *
+ * @retval uint8_t  The 8-bit value read from the specified register.
+ */
+uint8_t enc28_readReg8(uint8_t addr) {
 	enc28_setBank(addr);
 	return enc28_readOp(ENC28J60_READ_CTRL_REG, addr);
 }
 
-void enc28_writeReg8(uint8_t addr, uint8_t data)
-{
+
+
+/**
+ * @brief  Write an 8-bit value to a register of the ENC28J60 Ethernet module.
+ *
+ * This function writes an 8-bit value to a specified register of the ENC28J60 Ethernet module.
+ * It sets the ENC28J60 bank based on the specified address, then writes the data to the register.
+ *
+ * @param  addr  The address of the register to write.
+ * @param  data  The 8-bit value to write to the specified register.
+ *
+ * @note   This function assumes the existence of helper functions like enc28_setBank and enc28_writeOp
+ *         for interfacing with the ENC28J60.
+ *
+ * @retval None
+ */
+void enc28_writeReg8(uint8_t addr, uint8_t data) {
 	enc28_setBank(addr);
 	enc28_writeOp(ENC28J60_WRITE_CTRL_REG, addr, data);
 }
 
-uint16_t enc28_readReg16( uint8_t addr)
-{
+
+
+/**
+ * @brief  Read a 16-bit value from two consecutive registers of the ENC28J60 Ethernet module.
+ *
+ * This function reads a 16-bit value from two consecutive registers of the ENC28J60 Ethernet module.
+ * It reads the lower byte from the specified register address and the upper byte from the consecutive
+ * register address, then combines them into a 16-bit value.
+ *
+ * @param  addr  The address of the lower byte register.
+ *
+ * @note   This function assumes the existence of helper functions like enc28_readReg8 for interfacing
+ *         with the ENC28J60.
+ *
+ * @retval uint16_t  The 16-bit value read from the specified registers.
+ */
+uint16_t enc28_readReg16( uint8_t addr) {
 	return enc28_readReg8(addr) + (enc28_readReg8(addr+1) << 8);
 }
 
-void enc28_writeReg16(uint8_t addrL, uint16_t data)
-{
+
+/**
+ * @brief  Write a 16-bit value to two consecutive registers of the ENC28J60 Ethernet module.
+ *
+ * This function writes a 16-bit value to two consecutive registers of the ENC28J60 Ethernet module.
+ * It writes the lower byte of the data to the specified register address and the upper byte to the
+ * consecutive register address.
+ *
+ * @param  addrL  The address of the lower byte register.
+ * @param  data   The 16-bit value to write to the specified registers.
+ *
+ * @note   This function assumes the existence of helper functions like enc28_writeReg8 for interfacing
+ *         with the ENC28J60.
+ *
+ * @retval None
+ */
+void enc28_writeReg16(uint8_t addrL, uint16_t data) {
 	enc28_writeReg8(addrL, data & 0xFF);
 	enc28_writeReg8(addrL+1, data >> 8);
 }
 
-void enc28_setBank(uint8_t addr)
-{
+
+
+/**
+ * @brief  Set the ENC28J60 bank for register access.
+ *
+ * This function sets the ENC28J60 bank for register access based on the specified address. If the bank
+ * needs to be changed, it clears the current bank bits in ECON1, updates the bank variable, and sets the
+ * new bank bits in ECON1.
+ *
+ * @param  addr  The address used to determine the new bank.
+ *
+ * @note   This function assumes the existence of helper functions like enc28_writeOp and enc28_readOp
+ *         for interfacing with the ENC28J60.
+ *
+ * @retval None
+ */
+void enc28_setBank(uint8_t addr) {
 	if ((addr & BANK_MASK) != enc28_bank) 
 	{
 		enc28_writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_BSEL1|ECON1_BSEL0);
@@ -109,14 +254,51 @@ void enc28_setBank(uint8_t addr)
 }
 
 // 3.3.2 WRITING PHY REGISTERS
-void enc28_writephy(uint8_t addr, uint16_t data){
+
+
+/**
+ * @brief  Write a value to a PHY register of the ENC28J60 Ethernet module.
+ *
+ * This function writes a 16-bit value to a specified PHY register of the ENC28J60 Ethernet module.
+ * It sets the PHY register address, writes the lower and upper bytes of the data to the register,
+ * and waits until the write operation is completed.
+ *
+ * @param  addr  The address of the PHY register to write.
+ * @param  data  The 16-bit value to write to the specified PHY register.
+ *
+ * @note   This function assumes the existence of helper functions like enc28_writeReg8 and
+ *         enc28_readReg8 for interfacing with the ENC28J60.
+ *
+ * @retval None
+ */
+void enc28_writephy(uint8_t addr, uint16_t data) {
 	enc28_writeReg8(MIREGADR, addr);
 	enc28_writeReg8(MIWR, data);
 	enc28_writeReg8(MIWR+1 , data >> 8);  //?
 	while(enc28_readReg8(MISTAT) & MISTAT_BUSY);
 }
+
+
+
+
 //3.3.1 READING PHY REGISTERS
-uint16_t enc28_readphy(uint8_t addr){
+
+
+/**
+ * @brief  Read a value from a PHY register of the ENC28J60 Ethernet module.
+ *
+ * This function reads a 16-bit value from a specified PHY register of the ENC28J60 Ethernet module.
+ * It sets the PHY register address, initiates a read operation, and waits until the operation is completed.
+ * After reading the value, it clears the read command and returns the result.
+ *
+ * @param  addr  The address of the PHY register to read.
+ *
+ * @note   This function assumes the existence of helper functions like enc28_writeReg8, enc28_readReg8,
+ *         enc28_writeReg16, and enc28_readReg16 for interfacing with the ENC28J60.
+ *
+ * @retval uint16_t  The 16-bit value read from the specified PHY register.
+ */
+uint16_t enc28_readphy(uint8_t addr) {
 	enc28_writeReg8(MIREGADR, addr);
 	enc28_writeReg8(MICMD, MICMD_MIIRD);
 	while(enc28_readReg8(MISTAT) & MISTAT_BUSY);
@@ -124,7 +306,25 @@ uint16_t enc28_readphy(uint8_t addr){
 	return enc28_readReg8(MIRD) + (enc28_readReg8(MIRD+1) << 8);
 }
 
-void enc28_writeBuf(uint16_t len, uint8_t* data){
+
+
+
+/**
+ * @brief  Write data to the ENC28J60 buffer.
+ *
+ * This function writes a specified number of bytes to the ENC28J60 buffer. It enables the ENC28J60 chip,
+ * sends the write buffer memory opcode, and writes the specified number of bytes to the buffer. The data
+ * is taken from the provided buffer. Finally, it disables the ENC28J60 chip.
+ *
+ * @param  len   The number of bytes to write to the ENC28J60 buffer.
+ * @param  data  A pointer to the buffer containing the data to be written.
+ *
+ * @note   This function assumes the existence of helper functions like enc28J60_EnableChip,
+ *         enc28J60_DisableChip, and enc28J60_TransceiveByte for interfacing with the ENC28J60.
+ *
+ * @retval None
+ */
+void enc28_writeBuf(uint16_t len, uint8_t* data) {
 	enc28J60_EnableChip();
 	enc28J60_TransceiveByte(ENC28_WRITE_BUF_MEM);
 	while (len--)
@@ -132,6 +332,22 @@ void enc28_writeBuf(uint16_t len, uint8_t* data){
 	enc28J60_DisableChip();
 }
 
+
+/**
+ * @brief  Read data from the ENC28J60 buffer.
+ *
+ * This function reads a specified number of bytes from the ENC28J60 buffer. It enables the ENC28J60 chip,
+ * sends the read buffer memory opcode, and reads the specified number of bytes from the buffer. The data
+ * is stored in the provided buffer. Finally, it disables the ENC28J60 chip.
+ *
+ * @param  len   The number of bytes to read from the ENC28J60 buffer.
+ * @param  data  A pointer to the buffer to store the read data.
+ *
+ * @note   This function assumes the existence of helper functions like enc28J60_EnableChip,
+ *         enc28J60_DisableChip, and enc28J60_TransceiveByte for interfacing with the ENC28J60.
+ *
+ * @retval None
+ */
 void enc28_readBuf(uint16_t len, uint8_t *data) {
 	enc28J60_EnableChip();
 	enc28J60_TransceiveByte(ENC28_READ_BUF_MEM);
@@ -141,12 +357,40 @@ void enc28_readBuf(uint16_t len, uint8_t *data) {
 	enc28J60_DisableChip();
 }
 
+
+/**
+ * @brief  Read a 16-bit value from the ENC28J60 buffer.
+ *
+ * This function reads a 16-bit value from the ENC28J60 buffer. It internally calls the enc28_readBuf
+ * function to read the specified number of bytes (2 bytes in this case) and interprets them as a 16-bit
+ * value. The result is then returned.
+ *
+ * @note   This function assumes the existence of the enc28_readBuf function for reading from the buffer.
+ *
+ * @retval uint16_t  The 16-bit value read from the ENC28J60 buffer.
+ */
 uint16_t enc28_readBuf16() {
 	uint16_t result;
 	enc28_readBuf(2, (uint8_t*) &result);
 	return result;
 }
 
+
+/**
+ * @brief  Initialize the ENC28J60 Ethernet module.
+ *
+ * This function performs the initialization sequence for the ENC28J60 Ethernet module. It includes
+ * a soft reset, configuration of RX and TX buffers, setting MAC and PHY registers, enabling necessary
+ * interrupt lines, and configuring filter controls. The function assumes the existence of helper
+ * functions like enc28_writeOp, enc28_writeReg8, enc28_writeReg16, enc28_writephy, enc28_readOp, and
+ * enc28_readReg8.
+ *
+ * @param  mac  The MAC address to be set for the ENC28J60 module.
+ *
+ * @note   This function uses HAL_Delay for timing delays.
+ *
+ * @retval None
+ */
 void enc28_init(mac_address mac) {
 	// Disable the Chip Select pin
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
@@ -158,7 +402,7 @@ void enc28_init(mac_address mac) {
 	// delay 2ms
 	HAL_Delay(2);
 	// wait untill Clock is ready
-	while(!enc28_readOp(ENC28J60_READ_CTRL_REG, ESTAT) & ESTAT_CLKRDY);
+	while(!(enc28_readOp(ENC28J60_READ_CTRL_REG, ESTAT) & ESTAT_CLKRDY));
 	// Initialise RX and TX buffer size
 	
 	nextPacketPtr = RXSTART_INIT;
@@ -219,8 +463,30 @@ void enc28_init(mac_address mac) {
 	enc28_writeOp(ENC28J60_BIT_FIELD_SET, EIR, EIR_PKTIF);
 }
 
+
+
+
 // FIGURE 7-2: SAMPLE TRANSMIT PACKET LAYOUT
-void enc28_packetSend(uint16_t len, uint8_t* dataBuf){
+
+
+/**
+ * @brief  Send a packet using the ENC28J60 Ethernet module.
+ *
+ * This function sends a packet using the ENC28J60 Ethernet module. It checks whether there is no
+ * transmission in progress and resets the transmit logic problem if needed. Then, it sets the write
+ * pointer to the start of the transmit buffer area, updates the TXND pointer to correspond to the
+ * given packet size, writes the per-packet control byte, copies the packet into the transmit buffer,
+ * and finally sends the contents of the transmit buffer onto the network.
+ *
+ * @param  len      The length of the packet to be sent.
+ * @param  dataBuf  A pointer to the buffer containing the packet data.
+ *
+ * @note   This function assumes the existence of helper functions like enc28_readOp, enc28_writeOp,
+ *         enc28_writeReg16, enc28_writeBuf, and enc28_writeReg8 for interfacing with the ENC28J60.
+ *
+ * @retval None
+ */
+void enc28_packetSend(uint16_t len, uint8_t* dataBuf) {
 	// Check no transmit in progress
 	while (enc28_readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_TXRTS) {
 		// Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
@@ -245,7 +511,23 @@ void enc28_packetSend(uint16_t len, uint8_t* dataBuf){
 }
 
 
-
+/**
+ * @brief  Receive a packet using the ENC28J60 Ethernet module.
+ *
+ * This function receives a packet using the ENC28J60 Ethernet module. It checks if there is any
+ * pending packet in the receive buffer. If a packet is available, it retrieves the packet length,
+ * the receive status, and the packet data. The function then copies the packet data into the provided
+ * buffer, updates the receive buffer pointers, and decrements the packet counter. If the received
+ * packet is invalid or exceeds the specified maximum length, it discards the packet.
+ *
+ * @param  maxlen    The maximum length of the buffer to store the received packet.
+ * @param  dataBuf   A pointer to the buffer to store the received packet data.
+ *
+ * @note   This function assumes the existence of helper functions like enc28_readReg8, enc28_readBuf16,
+ *         enc28_readBuf, enc28_writeReg16, and enc28_writeOp for interfacing with the ENC28J60.
+ *
+ * @retval uint16_t  The actual length of the received packet (0 if no packet is available or an error occurs).
+ */
 uint16_t enc28_packetReceive(uint16_t maxlen, uint8_t* dataBuf) {
 	uint16_t rxstat;
 	uint16_t len;
