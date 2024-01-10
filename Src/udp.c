@@ -1,54 +1,49 @@
 /* Includes ------------------------------------------------------------------*/
 #include "udp.h"
 
+/* Private variables ---------------------------------------------------------*/
 static ip_address my_ip;
 static mac_address my_mac;
 static udp_serivces* serivces;
 
-/* private functions prototypes ---------------------------------------------*/
-int handle_udp(uint8_t* buf);
+/* Private functions prototypes ---------------------------------------------*/
+int handle_udp(const uint8_t* buf, uint16_t length);
 
+/* Functions -----------------------------------------------------------------*/
 
 /**
- * @brief Initializes the UDP layer.
+ * Initialisiert den UDP-Layer mit den angegebenen Parametern.
  *
- * This function registers the UDP protocol type with the IPv4 layer
- * and sets the pointer to a structure that holds information about UDP services.
- *
- * @param serivces_addr Pointer to the UDP services structure.
- * @param src_ip Source IP address for the UDP layer.
- * @param src_mac Source MAC address for the UDP layer.
+ * @param services_addr Ein Pointer auf die Struktur, die Informationen über die UDP-Dienste enthält.
+ * @param src_ip Die Quell-IP-Adresse für den UDP-Layer.
+ * @param src_mac Die Quell-MAC-Adresse für den UDP-Layer.
  */
 void udp_init(udp_serivces* serivces_addr, ip_address src_ip, mac_address src_mac) {
-	// Check if the UDP services structure pointer is not NULL
+	// Überprüfe, ob der Pointer auf die UDP-Services-Struktur nicht NULL ist
 	if (serivces_addr != NULL) {
-		// Add UDP to the IPv4 layer's protocol types and associate it with the handle_udp function
+		// Füge UDP zu den Protokolltypen der IPv4-Layer hinzu und verknüpfe es mit der handle_udp-Funktion
 		ipv4_add_type(UDP_TYPE, &handle_udp); 
 		// Set the pointer to the UDP services structure
 		serivces = serivces_addr;
 		// Set the index to zero, assuming no protocols have been added yet
 		serivces->idx = 0;
 	}
-	// Set the source IP and MAC addresses for the UDP layer
+	// Setze die Quell-IP- und MAC-Adressen für den UDP-Layer
 	my_ip = src_ip;
 	my_mac = src_mac;
 }
 
-
 /**
- * @brief Adds support for a specific UDP service.
+ * Fügt einen UDP-Protokolltyp mit einem lokalen Port und einer zugehörigen Funktion hinzu.
  *
- * This function registers a function to handle UDP packets for a given local port.
- *
- * @param lport Local port for the UDP service.
- * @param func Pointer to the function that handles UDP packets for the specified local port.
+ * @param lport Der lokale Port, der dem UDP-Protokolltyp zugeordnet ist.
+ * @param func Ein Pointer auf die Funktion, die mit dem UDP-Protokolltyp verknüpft ist.
  */
 void udp_add_type(uint16_t lport, void* func){
-	// Set UDP local port and associated function in the UDP services structure
+	// Setze den lokalen UDP-Port und die zugehörige Funktion in der UDP-Services-Struktur
 	serivces->serivces[serivces->idx].lport = lport;
 	serivces->serivces[serivces->idx].func = func;
 	
-	// Increment the index, assuming successful addition
 	if (serivces->idx + 1 < UDP_SERVICES_SIZE){
 		serivces->idx = serivces->idx + 1;
 	}
@@ -57,66 +52,87 @@ void udp_add_type(uint16_t lport, void* func){
 
 
 /**
- * @brief Handles incoming UDP packets.
+ * Verarbeitet ein eingehendes UDP-Paket und ruft die entsprechende registrierte Funktion für den lokalen Port auf.
  *
- * This function identifies the local port of an incoming UDP packet and dispatches
- * the packet to the appropriate handler function registered for that port.
- *
- * @param buf Pointer to the UDP packet data.
- * @return 0 if the packet is handled successfully, 1 otherwise.
+ * @param buf Ein Pointer auf den UDP-Paketdatenbereich.
+ * @param length Die Länge des UDP-Pakets.
+ * @return 0, wenn die Verarbeitung erfolgreich war; andernfalls 1.
  */
-int handle_udp(uint8_t* buf) {
-	// Extract UDP destination port from the packet
+int handle_udp(const uint8_t* buf, uint16_t length) {
+	// Extrahiert den UDP-Zielport aus dem Paket
 	uint16_t lport = (buf[36]  + (buf[37] << 8));
 	
-	// Iterate through the UDP services to find a match for the local port
+	// Durchläuft die UDP-Services, um eine Übereinstimmung für den lokalen Port zu finden
 	for(uint8_t i = 0; i < UDP_SERVICES_SIZE; i++) { 
 		if (lport == serivces->serivces[i].lport){
 			
-			// Call the registered handler function for the identified local port
-			return serivces->serivces[i].func(buf);
+			// Ruft die Handler-Funktion für den identifizierten lokalen Port auf
+			return serivces->serivces[i].func(buf, length);
 		}
 	}
-	// No matching service found for the UDP destination port
+	// Kein passender Service für den UDP-Zielport gefunden
 	return 1;
 }
 
-
-
-
-// Has already been written in icmp.c, maybe add it somewhere more generally?
-
 /**
- * @brief  Calculate Internet Checksum for the given data.
+ * Berechnet die UDP-Prüfsumme unter Verwendung des Pseudo-Headers, des UDP-Headers und der Payload.
  *
- * This function calculates the Internet Checksum for the provided data. The Internet Checksum is a
- * simple mathematical checksum algorithm used to detect errors in data transmission.
- *
- * @param  data    Pointer to the data for which the checksum is to be calculated.
- * @param  length  Length of the data in bytes.
- *
- * @return The calculated 16-bit checksum value.
+ * @param ip_header Ein Pointer auf den IPv4-Header.
+ * @param udp_header Ein Pointer auf den UDP-Header.
+ * @param payload Ein Pointer auf die Payload.
+ * @param payload_size Die Größe der Payload in Bytes.
+ * @return Die berechnete UDP-Prüfsumme.
  */
-uint16_t calculate_checksum(const void* data, size_t length) {
-    const uint16_t* p = data;
+uint16_t udp_checksum(ipv4_header *ip_header, udp_header *udp_header, uint8_t *payload, size_t payload_size) {
+    // Pseudoheader für die Checksummenberechnung
+    struct {
+        uint32_t src;
+        uint32_t dst;
+        uint8_t reserved;
+        uint8_t protocol;
+        uint16_t udp_length;
+    } pseudoheader;
+
+		// Fülle den Pseudo-Header mit Informationen (SRC & DST IPv4)
+    pseudoheader.src = (uint32_t)(ip_header->src.octet[0]) << 24 |
+                      (uint32_t)(ip_header->src.octet[1]) << 16 |
+                      (uint32_t)(ip_header->src.octet[2]) << 8 |
+                      (uint32_t)(ip_header->src.octet[3]);
+
+    pseudoheader.dst = (uint32_t)(ip_header->dst.octet[0]) << 24 |
+                      (uint32_t)(ip_header->dst.octet[1]) << 16 |
+                      (uint32_t)(ip_header->dst.octet[2]) << 8 |
+                      (uint32_t)(ip_header->dst.octet[3]);
+
+    pseudoheader.reserved = 0;
+    pseudoheader.protocol = ip_header->prtcl;
+    pseudoheader.udp_length = (sizeof(udp_header) + payload_size);
+
+    // Checksummenberechnung
     uint32_t sum = 0;
 
-    // Summation of the 16-bit values in the data area
-    while (length > 1) {
-        sum += *p++;
-        length -= 2;
+    // Pseudoheader
+    sum += (pseudoheader.src >> 16) + (pseudoheader.src & 0xFFFF);
+    sum += (pseudoheader.dst >> 16) + (pseudoheader.dst & 0xFFFF);
+    sum += pseudoheader.reserved;
+    sum += pseudoheader.protocol;
+    sum += pseudoheader.udp_length;
+
+    // UDP-Header
+    sum += (udp_header->src >> 8) + ((udp_header->src & 0xFF) << 8);
+    sum += (udp_header->dest >> 8) + ((udp_header->dest & 0xFF) << 8);
+    sum += (udp_header->length >> 8) + ((udp_header->length & 0xFF) << 8);
+    sum += udp_header->checksum;
+
+    // Payload
+    for (size_t i = 0; i < payload_size / 2; i++) {
+        sum += (payload[i * 2] << 8) + payload[i * 2 + 1];
+        while (sum >> 16) {
+            sum = (sum & 0xFFFF) + (sum >> 16);
+        }
     }
 
-    // If the length is odd, add the last byte
-    if (length > 0) {
-        sum += *(uint8_t*)p;
-    }
-
-    // Add the carryovers
-    sum = (sum >> 16) + (sum & 0xFFFF);
-    sum += (sum >> 16);
-
-    // Invert the bits to get checksum
-    return (uint16_t)~sum;
+    // Abschließende Bitumkehr und Rückgabe der Checksumme
+    return (uint16_t)~sum - 4; // (CRC)
 }
 

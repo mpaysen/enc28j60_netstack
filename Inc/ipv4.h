@@ -7,8 +7,6 @@
 
 
 /* Defines -------------------------------------*/
-
-
 #define PRTCL_TYPE_SIZE 2
 //Little Endian
 #define IPV4_TYPE 0x0008
@@ -16,7 +14,7 @@
 
 typedef struct {
 	uint8_t prtcl_type;
-	int (*func)(uint8_t* buf);
+	int (*func)(const uint8_t* buf, uint16_t length);
 } prtcl_type;
 
 typedef struct {
@@ -35,14 +33,14 @@ typedef struct {
 	uint16_t header_checksum;
 	ip_address src;
 	ip_address dst;	
-} ipv4_header;
+} __attribute__((packed)) ipv4_header;
 
-
+/* Exported functions prototypes ---------------------------------------------*/
 void ipv4_init(prtcl_types* types_addr);
 
 void ipv4_add_type(uint8_t type, void* func);
 
-int handle_ipv4(uint8_t* buf);
+//int handle_ipv4(uint8_t* buf, uint16_t length);
 
 uint16_t calculate_next_id();
 

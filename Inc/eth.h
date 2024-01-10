@@ -6,13 +6,11 @@
 
 
 /* Defines -------------------------------------*/
-
-
 #define ETHER_TYPE_SIZE 2
 
 typedef struct {
 	uint16_t ether_type;
-	int (*func)(uint8_t* buf);
+	int (*func)(const uint8_t* buf, uint16_t length);
 } ether_type;
 
 typedef struct {
@@ -32,13 +30,19 @@ typedef struct {
 	mac_address dest_mac;
 	mac_address src_mac;
 	uint16_t ether_type;
-} mac_header;
+} __attribute__((packed)) mac_header;
 
-
+/* Exported functions prototypes ---------------------------------------------*/
 void eth_init(ether_types* types_addr);
 
 void eth_add_type(uint16_t type, void* func);
 
-int eth_handler(uint8_t* buf);
+int eth_handler(const uint8_t* buf, uint16_t lenght);
+
+int isInSameNetwork(ip_address* my_ip, ip_address* dst_ip, ip_address* sub_netmask);
+
+uint32_t swapEndian32(uint32_t value);
+
+uint16_t swapEndian16(uint16_t value);
 
 #endif /* __ETH_H */

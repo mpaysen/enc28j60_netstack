@@ -1,92 +1,107 @@
 /* Includes ------------------------------------------------------------------*/
-
 #include "eth.h"
 
+/* Private variables ---------------------------------------------------------*/
 static ether_types* types;
 
+/* Functions -----------------------------------------------------------------*/
 
 /**
- * @brief  Initialize the Ethernet layer with a pointer to the Layer 2 protocol types structure.
+ * Initialisiert die Ethernet-Schicht, indem der Pointer auf die Struktur der Layer-2-Protokolltypen
+ * gesetzt wird und der Index auf Null gesetzt wird, um anzuzeigen, dass noch keine Layer-2-Protokolle hinzugefügt wurden.
  *
- * This function initializes the Ethernet layer with a pointer to the Layer 2 protocol types structure.
- * It sets the pointer to the provided `types_addr` and initializes the index to zero, indicating that
- * no Layer 2 protocols have been added yet.
- *
- * @param  types_addr  A pointer to the Layer 2 protocol types structure.
- *
- * @note   This function assumes the existence of a structure named ether_types that contains the index
- *         for tracking Layer 2 protocol types.
- *
- * @retval None
+ * @param types_addr Ein Pointer auf die Struktur der Layer-2-Protokolltypen.
  */
 void eth_init(ether_types* types_addr) {
-	// Check if the provided pointer is not NULL
+	// Überprüft, ob der bereitgestellte Pointer nicht NULL ist
 	if (types_addr != NULL) {
-		// Set the pointer to the Layer 2 protocol types structure
+		// Setzt den Pointer auf die Struktur der Layer-2-Protokolltypen
 		types = types_addr;
 		
-		// Initialize the index to zero, indicating no Layer 2 protocols added yet
 		types->idx = 0;
 	}
 }
 
-
-
 /**
- * @brief  Add a Layer 2 protocol type and its corresponding handling function to the Ethernet layer.
+ * Fügt einen neuen Layer-2-Protokolltyp zur Ethernet-Schicht hinzu.
+ * Setzt die ether_type- und func-Felder der Struktur der Layer-2-Protokolltypen
+ * an der aktuellen Indexposition und erhöht den Index, wenn im Array noch Platz vorhanden ist.
  *
- * This function adds a Layer 2 protocol type and its corresponding handling function to the Ethernet layer.
- * It sets the ether_type and func fields of the Layer 2 protocol types structure at the current index,
- * then increments the index if there is space available in the types array.
- *
- * @param  type  The Layer 2 protocol type to be added.
- * @param  func  A pointer to the handling function for the specified ether_type.
- *
- * @note   This function assumes the existence of a structure named ether_types that contains an array
- *         of Layer 2 protocol types and their handling functions, as well as an index to track the
- *         number of added protocols.
- *
- * @retval None
+ * @param type Der EtherType des hinzuzufügenden Protokolls.
+ * @param func Ein Pointer auf die Funktion, die für das hinzugefügte Protokoll aufgerufen werden soll.
  */
 void eth_add_type(uint16_t type, void* func){
-	// Set the ether_type and func fields of the Layer 2 protocol types structure at the current index
+	 // Setzt die ether_type- und func-Felder der Struktur der Layer-2-Protokolltypen an der aktuellen Indexposition
 	types->types[types->idx].ether_type = type;
 	types->types[types->idx].func = func;
 	
-	// Increment the index if there is space available in the types array
+	 // Erhöht den Index, wenn im Typenarray noch Platz vorhanden ist
 	if (types->idx + 1 < ETHER_TYPE_SIZE){
 		types->idx = types->idx + 1;
 	}
 }
 
-
 /**
- * @brief  Handle an Ethernet packet by identifying the Layer 2 protocol type and calling the corresponding function.
+ * Verarbeitet Ethernet-Pakete, indem der EtherType aus dem Ethernet-Paketheader extrahiert wird
+ * und dann die registrierten Protokolltypen durchgegangen werden, um die entsprechende Verarbeitungsfunktion aufzurufen.
  *
- * This function handles an Ethernet packet by extracting the Layer 2 protocol type from the packet header,
- * comparing it with the registered protocol types in the ether_types structure, and calling the corresponding
- * handling function if a match is found.
- *
- * @param  buf  A pointer to the Ethernet packet buffer.
- *
- * @note   This function assumes the existence of a structure named ether_types that contains an array
- *         of Layer 2 protocol types and their handling functions, as well as an index to track the
- *         number of added protocols.
- *
- * @retval int  Returns 0 if a matching protocol type and handler were found, otherwise returns 1.
+ * @param buf Ein Pointer auf den Puffer, der das empfangene Ethernet-Paket enthält.
+ * @param length Die Länge des empfangenen Ethernet-Pakets.
+ * @return 0, wenn die Verarbeitung erfolgreich war; 1, wenn kein passender Protokolltyp und Handler gefunden wurde.
  */
-int eth_handler(uint8_t* buf) {
-	// Get ether_type from the Ethernet packet header
+int eth_handler(const uint8_t* buf, uint16_t length) {
+	// Extrahiert den EtherType aus dem Ethernet-Paketheader
 	uint16_t typ = (buf[12]  + (buf[13] << 8));
 	
-	// Iterate through the registered protocol types in the ether_types structure
+	// Durchläuft die registrierten Protokolltypen in der ether_types-Struktur
 	for(uint8_t i = 0; i < ETHER_TYPE_SIZE; i++) { 
-		// Check if the ether_type from the packet matches a registered protocol type
+		// Überprüft, ob der EtherType des Pakets mit einem registrierten Protokolltyp übereinstimmt
 		if (typ == types->types[i].ether_type){
-			// Call the corresponding handling function for the matched ether_type
-			return types->types[i].func(buf);
+			// Ruft die entsprechende Verarbeitungsfunktion für den übereinstimmenden EtherType auf
+			return types->types[i].func(buf, length);
 		}
 	}
-	// Return 1 if no matching protocol type and handler were found
 	return 1;
+}
+
+/**
+ * Überprüft, ob die gegebene Ziel-IP-Adresse im selben Netzwerk wie die lokale IP-Adresse liegt.
+ *
+ * @param my_ip Ein Pointer auf die lokale IP-Adresse.
+ * @param dst_ip Ein Pointer auf die Ziel-IP-Adresse, die überprüft werden soll.
+ * @param sub_netmask Ein Pointer auf die Subnetzmaske des Netzwerks.
+ * @return 1, wenn die Ziel-IP-Adresse im selben Netzwerk liegt; 0, wenn nicht.
+ */
+int isInSameNetwork(ip_address* my_ip, ip_address* dst_ip, ip_address* sub_netmask) {
+    // Überprüfen, ob die IP-Adresse im selben Netzwerk liegt
+    for (int i = 0; i < 4; i++) {
+        if ((my_ip->octet[i] & sub_netmask->octet[i]) != (dst_ip->octet[i] & sub_netmask->octet[i])) {
+            return 0; // Nicht im selben Netzwerk
+        }
+    }
+    return 1; // Im selben Netzwerk
+}
+
+/**
+ * Vertauscht die Byte-Reihenfolge eines 32-Bit-Werts (Endian-Swap).
+ *
+ * @param value Der 32-Bit-Wert, dessen Byte-Reihenfolge getauscht werden soll.
+ * @return Der 32-Bit-Wert mit vertauschter Byte-Reihenfolge.
+ */
+uint32_t swapEndian32(uint32_t value) {
+    return ((value & 0xFF000000) >> 24) |
+           ((value & 0x00FF0000) >> 8) |
+           ((value & 0x0000FF00) << 8) |
+           ((value & 0x000000FF) << 24);
+}
+
+/**
+ * Vertauscht die Byte-Reihenfolge eines 16-Bit-Werts (Endian-Swap).
+ *
+ * @param value Der 16-Bit-Wert, dessen Byte-Reihenfolge getauscht werden soll.
+ * @return Der 16-Bit-Wert mit vertauschter Byte-Reihenfolge.
+ */
+uint16_t swapEndian16(uint16_t value) {
+    return ((value & 0xFF00) >> 8) |
+           ((value & 0x00FF) << 8);
 }

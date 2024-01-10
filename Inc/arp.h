@@ -8,7 +8,6 @@
 #include "eth.h"
 
 /* Defines ------------------------------------------------------------------*/
-
 #define ARP_TABLE_SIZE 10
 //Little Endian
 #define ARP_TYPE 	0x0608
@@ -43,12 +42,9 @@ typedef struct {
 
 
 /* Exported functions prototypes ---------------------------------------------*/
-
 void arp_table_init(arp_table* table_adr, ip_address src_ip, mac_address src_mac);
 
 int get_mac(ip_address ip, mac_address* mac_addr);
-
-void send_arp_req(ip_address src_ip, mac_address src_mac, ip_address target_ip);
 
 
 #endif /* __ARP_H */

@@ -8,6 +8,8 @@
 #include "enc28_j60.h"
 #include "arp.h"
 #include "icmp.h"
+#include "udp.h"
+#include "dhcp.h"
 
 
 

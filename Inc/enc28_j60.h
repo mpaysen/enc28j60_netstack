@@ -115,14 +115,6 @@
 #define EIR_TXIF									0x08
 #define MICMD_MIIRD								0x01
 
-//MAC address  0xB8,0x37,0x4A,0x04,0x20,0x0B
-#define MAC_1					0x0B
-#define MAC_2					0x20
-#define MAC_3					0x04
-#define MAC_4					0x4A
-#define MAC_5					0x37
-#define MAC_6					0xB8
-
 //PHY layer
 // REGISTER 2-2: PHLCON: PHY MODULE LED CONTROL REGISTER
 #define PHLCON										0x14
@@ -139,7 +131,6 @@
 
 
 /* Exported functions prototypes ---------------------------------------------*/
-
 void enc28_init(mac_address mac);
 
 void enc28_packetSend(uint16_t len, uint8_t* dataBuf);

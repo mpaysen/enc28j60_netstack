@@ -10,10 +10,8 @@
 #include "arp.h"
 
 /* Defines ------------------------------------------------------------------*/
-
 //Little Endian
 #define ICMP_TYPE 	0x01
-
 #define ICMP_CODE	0x00
 #define ICMP_CHECKSUM	0x584d
 #define ICMP_IDENT 0x0100
@@ -33,14 +31,12 @@ typedef struct{
 	uint16_t ident;
 	uint16_t seq;
 	payload data;
-} icmp_package;
+} __attribute__((packed)) icmp_package;
 
 
 /* Exported functions prototypes ---------------------------------------------*/
-
-void icmp_init(ip_address src_ip, mac_address src_mac);
+void icmp_init(ip_address* src_ip, ip_address *my_subnet,ip_address *my_gateway, mac_address src_mac);
 
 void send_icmp_req(ip_address target_ip);
-
 
 #endif /* __ICMP_H */
