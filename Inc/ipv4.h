@@ -2,7 +2,6 @@
 #ifndef __IPV4_H
 #define __IPV4_H
 
-#include "stm32g0xx_hal.h"
 #include "eth.h"
 
 

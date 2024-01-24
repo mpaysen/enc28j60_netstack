@@ -3,7 +3,6 @@
 #define __ARP_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32g0xx_hal.h"
 #include "enc28_j60.h"
 #include "eth.h"
 
@@ -42,7 +41,7 @@ typedef struct {
 
 
 /* Exported functions prototypes ---------------------------------------------*/
-void arp_table_init(arp_table* table_adr, ip_address src_ip, mac_address src_mac);
+void arp_table_init(arp_table* table_adr, ip_address* src_ip, mac_address src_mac);
 
 int get_mac(ip_address ip, mac_address* mac_addr);
 

@@ -2,8 +2,6 @@
 #include "udp.h"
 
 /* Private variables ---------------------------------------------------------*/
-static ip_address my_ip;
-static mac_address my_mac;
 static udp_serivces* serivces;
 
 /* Private functions prototypes ---------------------------------------------*/
@@ -18,7 +16,7 @@ int handle_udp(const uint8_t* buf, uint16_t length);
  * @param src_ip Die Quell-IP-Adresse für den UDP-Layer.
  * @param src_mac Die Quell-MAC-Adresse für den UDP-Layer.
  */
-void udp_init(udp_serivces* serivces_addr, ip_address src_ip, mac_address src_mac) {
+void udp_init(udp_serivces* serivces_addr) {
 	// Überprüfe, ob der Pointer auf die UDP-Services-Struktur nicht NULL ist
 	if (serivces_addr != NULL) {
 		// Füge UDP zu den Protokolltypen der IPv4-Layer hinzu und verknüpfe es mit der handle_udp-Funktion
@@ -28,9 +26,6 @@ void udp_init(udp_serivces* serivces_addr, ip_address src_ip, mac_address src_ma
 		// Set the index to zero, assuming no protocols have been added yet
 		serivces->idx = 0;
 	}
-	// Setze die Quell-IP- und MAC-Adressen für den UDP-Layer
-	my_ip = src_ip;
-	my_mac = src_mac;
 }
 
 /**

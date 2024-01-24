@@ -6,7 +6,6 @@
 extern SPI_HandleTypeDef hspi1;
 static uint8_t enc28_bank;
 static uint16_t nextPacketPtr;
-static uint8_t erxfcon;
 
 /* Private functions prototypes ---------------------------------------------*/
 uint8_t enc28J60_TransceiveByte(uint8_t data);
@@ -150,6 +149,9 @@ void enc28_writeReg16(uint8_t addrL, uint16_t data) {
 }
 
 
+//ECON1: ETHERNET CONTROL REGISTER 1
+//FIGURE 3-1: ENC28J60 MEMORY ORGANIZATION
+
 /**
  * Setzt die Bank des ENC28J60 Ethernet-Controllers entsprechend der Adresse des Registers.
  *
@@ -264,12 +266,13 @@ uint16_t enc28_readBuf16() {
  * @param mac Die MAC-Adresse des Geräts.
  */
 void enc28_init(mac_address mac) {
-
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
+	
+	enc28J60_DisableChip();
+	//HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
 
 	HAL_Delay(1);
-	// Führt einen Soft-Reset des ENC28J60-Moduls durch
 	// TABLE 4-1: SPI INSTRUCTION SET FOR THE ENC28J60
+	// Führt einen Soft-Reset des ENC28J60-Moduls durch
 	enc28_writeOp(ENC28J60_SOFT_RESET, 0, ENC28J60_SOFT_RESET);
 	// delay 2ms
 	HAL_Delay(2);
@@ -290,14 +293,18 @@ void enc28_init(mac_address mac) {
 	
 	enc28_writeReg16(ERXWRPT, RXSTART_INIT);
 	
+	//6.5 MAC Initialization Settings
 	
 	// Empfangs-Puffer-Filter
 	// REGISTER 8-1: ERXFCON: ETHERNET RECEIVE FILTER CONTROL REGISTER
 	enc28_writeReg8(ERXFCON, ERXFCON_UCEN | ERXFCON_BCEN | ERXFCON_CRCEN);
+	// ERXFCON_UCEN, Pakete, deren Zieladresse nicht mit der lokalen MAC-Adresse übereinstimmt, werden verworfen.
+  // ERXFCON_BCEN, Pakete mit der Zieladresse Broadcast-MAC-Adresse werden akzeptiert.
+  // ERXFCON_CRCEN, Alle Pakete mit ungültiger CRC werden verworfen.
 	
 	// MAC Control Register 1
 	// REGISTER 6-1: MACON1: MAC CONTROL REGISTER 1
-	enc28_writeReg8(MACON1, MACON1_MARXEN | MACON1_TXPAUS | MACON1_RXPAUS | MACON1_PASSALL);
+	enc28_writeReg8(MACON1, MACON1_MARXEN | MACON1_RXPAUS | MACON1_PASSALL);
 	
 	// MAC Control Register 3
 	// REGISTER 6-2: MACON3: MAC CONTROL REGISTER 3
@@ -340,7 +347,7 @@ void enc28_init(mac_address mac) {
  * @param dataBuf Ein Pointer auf den Puffer mit den zu sendenden Daten.
  */
 void enc28_packetSend(uint16_t len, uint8_t* dataBuf) {
-	// Überprüft, ob keine Übertragung im Gange ist
+
 	while (enc28_readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_TXRTS) {
 		// Setzt das Übertragungs-Logic-Problem zurück
 		if ((enc28_readReg8(EIR) & EIR_TXERIF)) {
@@ -349,7 +356,7 @@ void enc28_packetSend(uint16_t len, uint8_t* dataBuf) {
 		}
 	}
 		
-	// Setzt den Poiter auf den Anfang des Übertragungspufferbereichs
+	// Setzt den Pointer auf den Anfang des Übertragungspufferbereichs
 	enc28_writeReg16(EWRPT, TXSTART_INIT);
 	 // Setzt den TXND-Pointer so, dass er der gegebenen Paketgröße entspricht
 	enc28_writeReg16(ETXND, (TXSTART_INIT + len));

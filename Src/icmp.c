@@ -63,6 +63,7 @@ void send_icmp_req(ip_address target_ip){
 		return;
 	}
 	
+	
 	// Layer 2
 	req.mac_header.dest_mac = dest_mac;
 	req.mac_header.src_mac = my_mac;

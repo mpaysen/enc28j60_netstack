@@ -2,7 +2,7 @@
 #include "arp.h"
 
 static arp_table* table;
-static ip_address my_ip;
+static ip_address* my_ip_addr;
 static mac_address my_mac;
 
 /* Private functions prototypes ---------------------------------------------*/
@@ -12,7 +12,7 @@ int get_mac_from_table(ip_address ip, mac_address* mac);
 void get_arp_rep(const uint8_t* buf);
 void send_arp_req(ip_address src_ip, mac_address src_mac, ip_address target_ip);
 void send_arp_rep(ip_address src_ip, mac_address src_mac, ip_address target_ip, mac_address target_mac);
-void get_arp_req(const uint8_t* buf, ip_address my_ip, mac_address my_mac);
+void get_arp_req(const uint8_t* buf, ip_address *my_ip, mac_address my_mac);
 
 /* Functions -----------------------------------------------------------------*/
 
@@ -23,14 +23,14 @@ void get_arp_req(const uint8_t* buf, ip_address my_ip, mac_address my_mac);
  * @param src_ip Die Quell-IP-Adresse.
  * @param src_mac Die Quell-MAC-Adresse.
  */
-void arp_table_init(arp_table* table_adr, ip_address src_ip, mac_address src_mac) {
+void arp_table_init(arp_table* table_adr, ip_address* src_ip, mac_address src_mac) {
 	// Fügt den ARP-EtherType und seine entsprechende Verarbeitungsfunktion zur Ethernet-Schicht hinzu
 	eth_add_type(ARP_TYPE, &handle_arp);
 	
 	table = table_adr;
 	
 	 // Weist die bereitgestellten Quell-IP- und MAC-Adressen zu
-	my_ip = src_ip;
+	my_ip_addr = src_ip;
 	my_mac = src_mac;
 	
   table->tail = 0;
@@ -222,12 +222,12 @@ void send_arp_rep(ip_address src_ip, mac_address src_mac, ip_address target_ip, 
  * @param my_ip Die eigene IP-Adresse des Geräts.
  * @param my_mac Die eigene MAC-Adresse des Geräts.
  */
-void get_arp_req(const uint8_t* buf, ip_address my_ip, mac_address my_mac) {
+void get_arp_req(const uint8_t* buf, ip_address *my_ip, mac_address my_mac) {
 	// Überprüft, ob die ARP-Anfrage an die angegebene IP-Adresse (my_ip) gerichtet ist
-	if (my_ip.octet[0] == buf[38] &&
-      my_ip.octet[1] == buf[39] &&
-      my_ip.octet[2] == buf[40] &&
-      my_ip.octet[3] == buf[41]) {
+	if (my_ip->octet[0] == buf[38] &&
+      my_ip->octet[1] == buf[39] &&
+      my_ip->octet[2] == buf[40] &&
+      my_ip->octet[3] == buf[41]) {
 			
 			// Extrahiert Informationen aus der ARP-Anfrage
 			arp_entry entry;
@@ -242,9 +242,11 @@ void get_arp_req(const uint8_t* buf, ip_address my_ip, mac_address my_mac) {
 			entry.dest_ip.octet[1] = buf[29];
 			entry.dest_ip.octet[2] = buf[30];
 			entry.dest_ip.octet[3] = buf[31];	
+				
+			ip_address ip = *my_ip;
 			
 			 // Sendet eine ARP-Antwort an die Quell-MAC- und IP-Adressen zurück
-			send_arp_rep(my_ip, my_mac, entry.dest_ip, entry.dest_mac);
+			send_arp_rep(ip, my_mac, entry.dest_ip, entry.dest_mac);
 			}
 			return;
 }
@@ -265,7 +267,7 @@ int get_mac(ip_address ip, mac_address* mac_addr){
 		return 1; // MAC-Adresse in der ARP-Tabelle gefunden
 	}
 	// Falls nicht gefunden, sendet eine ARP-Anfrage, um die MAC-Adresse zu erhalten
-	send_arp_req(my_ip, my_mac, ip);
+	send_arp_req(*my_ip_addr, my_mac, ip);
 	return 0; // ARP-Anfrage gesendet, die ARP-Antwort wird die ARP-Tabelle aktualisieren
 }
 
@@ -278,7 +280,7 @@ int get_mac(ip_address ip, mac_address* mac_addr){
  */
 int handle_arp(const uint8_t* buf, uint16_t length){
 		// Extrahiere ARP-Opcode aus dem Paket
-		if ((buf[20]  + (buf[21] << 8)) == ARP_REQ){get_arp_req(buf, my_ip, my_mac);}  // ARP-Anfrage: Verarbeiten und ARP-Antwort senden
+		if ((buf[20]  + (buf[21] << 8)) == ARP_REQ){get_arp_req(buf, my_ip_addr, my_mac);}  // ARP-Anfrage: Verarbeiten und ARP-Antwort senden
 		if ((buf[20]  + (buf[21] << 8)) == ARP_REPLY){get_arp_rep(buf);} // ARP-Antwort: Füge die IP- und MAC-Adresse des Absenders zur ARP-Tabelle hinzu
 		return 0;
 }

@@ -2,7 +2,6 @@
 #define __MAIN_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32g0xx_hal.h"
 #include "eth.h"
 #include "ipv4.h"
 #include "enc28_j60.h"

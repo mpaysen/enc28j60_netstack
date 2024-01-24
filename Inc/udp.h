@@ -3,8 +3,7 @@
 #define __UDP_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32g0xx_hal.h"
-#include "enc28_j60.h"
+
 #include "eth.h"
 #include "ipv4.h"
 #include "arp.h"
@@ -33,7 +32,7 @@ typedef struct{
 
 
 /* Exported functions prototypes ---------------------------------------------*/
-void udp_init(udp_serivces* types_addr, ip_address src_ip, mac_address src_mac);
+void udp_init(udp_serivces* types_addr);
 
 void udp_add_type(uint16_t lport, void* func);
 

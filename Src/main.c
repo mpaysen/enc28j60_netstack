@@ -41,7 +41,7 @@ int main(void) {
 	enc28_init(my_mac); // Initialize eth_hw
 	eth_init(&eth_types);// Initialize Layer 2
 	ipv4_init(&prot_types);// Initialize Layer 3 (IPv4)
-	udp_init(&services, my_ip, my_mac); // Initialize Layer 4 (UDP)
+	udp_init(&services); // Initialize Layer 4 (UDP)
 	dhcp_init(&my_ip, &my_subnet, &my_gateway, &my_dhcp_server, &dhcp_rdy, my_mac); // Initialize Layer 7 (DHCP)
 
 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET); //LED ON
@@ -68,7 +68,7 @@ while (1) { // DHCP Loop
 	}
 }
 
-arp_table_init(&table, my_ip, my_mac); // Initialize ARP
+arp_table_init(&table, &my_ip, my_mac); // Initialize ARP
 icmp_init(&my_ip, &my_subnet, &my_gateway, my_mac); // Initialize ICMP
 	
 	
@@ -76,12 +76,13 @@ icmp_init(&my_ip, &my_subnet, &my_gateway, my_mac); // Initialize ICMP
   {
 
 	uint16_t length = enc28_packetReceive(BUFFER_SIZE, buffer);
-	 if(length){
+if(length){
 			eth_handler(buffer, length); //handel Netzwerkverkehr
 	 }
-	 	 if(dhcp_rdy){
+	if(dhcp_rdy){
 			dhcp_rdy = 0x00;
 	}
+	//send_icmp_req(my_ip);
 	 ///HAL_Delay(2000);
   }
   /* CODE END */
@@ -130,7 +131,6 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 }
-
 
 
 static void SPI1_Init(void)

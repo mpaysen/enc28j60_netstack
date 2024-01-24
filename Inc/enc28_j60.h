@@ -3,7 +3,7 @@
 #define __ENC28_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32g0xx_hal.h"
+
 #include "eth.h"
 
 /* Defines ------------------------------------------------------------------*/
@@ -106,6 +106,7 @@
 #define MACON3_PADCFG0						0x20
 #define MACON3_TXCRCEN						0x10
 #define MACON3_FRMLNEN						0x02
+#define MACON3_FULDPX							0x01
 #define MICMD_MIIRD								0x01
 
 #define EIE_INTIE									0x80 
@@ -118,6 +119,7 @@
 //PHY layer
 // REGISTER 2-2: PHLCON: PHY MODULE LED CONTROL REGISTER
 #define PHLCON										0x14
+#define PHCON1										0x00
 #define PHCON2										0x10
 
 // bit 1 STRCH: LED Pulse Stretching Enable bit
@@ -128,6 +130,7 @@
 // 0001 = Display transmit activity (stretchable)
 #define PHLCON_LED								0x0122
 #define PHCON2_HDLDIS							0x0100
+#define PHCON1_PDPXMD							0x0100
 
 
 /* Exported functions prototypes ---------------------------------------------*/
