@@ -349,7 +349,7 @@ void enc28_init(mac_address mac) {
 void enc28_packetSend(uint16_t len, uint8_t* dataBuf) {
 
 	while (enc28_readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_TXRTS) {
-		// Setzt das Übertragungs-Logic-Problem zurück
+
 		if ((enc28_readReg8(EIR) & EIR_TXERIF)) {
 			enc28_writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRST);
 			enc28_writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRST);
